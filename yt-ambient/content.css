@@ -1,0 +1,84 @@
+/* All rules except the canvas itself are scoped to html.yta-on, which the
+   content script only sets when the extension is enabled AND YouTube is in dark theme. */
+
+#yta-canvas {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0;
+  transform: scale(1.35); /* hide the soft edges (keep in sync with CSS_SCALE in content.js) */
+  transition: opacity 1.2s ease;
+  /* No CSS filter here on purpose: blurring a full-screen layer is very CPU/GPU hungry.
+     The blur is applied to the tiny canvas in content.js and upscaled smoothly. */
+  will-change: opacity;
+}
+
+html:not(.yta-on) #yta-canvas {
+  display: none;
+}
+
+html.yta-on #yta-canvas.yta-visible {
+  opacity: var(--yta-intensity, 0.8);
+}
+
+/* The page colour lives on <html>; <body> must stay transparent or it would
+   paint over the canvas (which sits at z-index -1 inside <body>). */
+html.yta-on,
+html.yta-on:root {
+  background: #0a0a0a !important;
+  background-color: #0a0a0a !important;
+}
+html.yta-on body {
+  background: transparent !important;
+}
+
+/* Make YouTube's opaque backgrounds see-through so the glow shows. */
+html.yta-on,
+html.yta-on[dark] {
+  --yt-spec-base-background: transparent !important;
+  --yt-spec-general-background-a: transparent !important;
+  --yt-spec-general-background-b: transparent !important;
+  --yt-spec-general-background-c: transparent !important;
+}
+
+html.yta-on ytd-app,
+html.yta-on ytd-page-manager,
+html.yta-on ytd-watch-flexy,
+html.yta-on ytd-browse,
+html.yta-on ytd-search,
+html.yta-on ytd-shorts,
+html.yta-on #page-manager,
+html.yta-on tp-yt-app-drawer #contentContainer,
+html.yta-on ytd-mini-guide-renderer,
+html.yta-on ytd-guide-renderer,
+html.yta-on ytd-watch-flexy[flexy] #background,
+html.yta-on ytd-feed-filter-chip-bar-renderer,
+html.yta-on yt-chip-cloud-renderer {
+  background: transparent !important;
+  background-color: transparent !important;
+}
+
+/* Frosted-glass header and chip bar: the glow tints them, but scrolled
+   content doesn't show through. */
+html.yta-on ytd-masthead,
+html.yta-on #masthead-container,
+html.yta-on #background.ytd-masthead,
+html.yta-on #chips-wrapper.ytd-feed-filter-chip-bar-renderer {
+  background: rgba(10, 10, 10, 0.55) !important;
+  background-color: rgba(10, 10, 10, 0.55) !important;
+  -webkit-backdrop-filter: blur(24px);
+  backdrop-filter: blur(24px);
+}
+
+/* Hide YouTube's own cinematic effect so the two don't stack. */
+html.yta-on #cinematics,
+html.yta-on #cinematics-container,
+html.yta-on #cinematic-container,
+html.yta-on #cinematic-shorts-scrim,
+html.yta-on ytd-shorts [id^="cinematic"] {
+  display: none !important;
+}
