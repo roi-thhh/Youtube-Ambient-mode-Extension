@@ -1,84 +1,238 @@
-/* All rules except the canvas itself are scoped to html.yta-on, which the
-   content script only sets when the extension is enabled AND YouTube is in dark theme. */
+/* ==========================================================================
+   YouTube Ambient Light - Full Page Ambient Glow CSS
+   Compatible with all Chromium-based browsers (Chrome, Edge, Brave, Opera, Vivaldi)
+   ========================================================================== */
 
+/* The Ambient Light Canvas */
 #yta-canvas {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  z-index: -1;
-  pointer-events: none;
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  z-index: -1 !important;
+  pointer-events: none !important;
   opacity: 0;
-  transform: scale(1.35); /* hide the soft edges (keep in sync with CSS_SCALE in content.js) */
-  transition: opacity 1.2s ease;
-  /* No CSS filter here on purpose: blurring a full-screen layer is very CPU/GPU hungry.
-     The blur is applied to the tiny canvas in content.js and upscaled smoothly. */
-  will-change: opacity;
+  transform: scale(var(--yta-scale, 1.35)) translateZ(0);
+  transform-origin: center center;
+  filter: blur(var(--yta-blur, 80px)) saturate(var(--yta-saturate, 1.6)) brightness(var(--yta-brightness, 1.05));
+  -webkit-filter: blur(var(--yta-blur, 80px)) saturate(var(--yta-saturate, 1.6)) brightness(var(--yta-brightness, 1.05));
+  transition: opacity 0.8s cubic-bezier(0.2, 0.8, 0.2, 1);
+  will-change: opacity, transform;
+  image-rendering: auto;
 }
 
+/* Hide when ambient mode is disabled */
 html:not(.yta-on) #yta-canvas {
-  display: none;
+  display: none !important;
 }
 
+/* Visible state */
 html.yta-on #yta-canvas.yta-visible {
   opacity: var(--yta-intensity, 0.8);
 }
 
-/* The page colour lives on <html>; <body> must stay transparent or it would
-   paint over the canvas (which sits at z-index -1 inside <body>). */
+/* Hide canvas in native fullscreen */
+:fullscreen #yta-canvas,
+html:fullscreen #yta-canvas,
+body:fullscreen #yta-canvas {
+  display: none !important;
+}
+
+/* ==========================================================================
+   Page & Root Backdrops
+   ========================================================================== */
+
 html.yta-on,
 html.yta-on:root {
-  background: #0a0a0a !important;
-  background-color: #0a0a0a !important;
+  background: #080808 !important;
+  background-color: #080808 !important;
 }
+
 html.yta-on body {
-  background: transparent !important;
-}
-
-/* Make YouTube's opaque backgrounds see-through so the glow shows. */
-html.yta-on,
-html.yta-on[dark] {
-  --yt-spec-base-background: transparent !important;
-  --yt-spec-general-background-a: transparent !important;
-  --yt-spec-general-background-b: transparent !important;
-  --yt-spec-general-background-c: transparent !important;
-}
-
-html.yta-on ytd-app,
-html.yta-on ytd-page-manager,
-html.yta-on ytd-watch-flexy,
-html.yta-on ytd-browse,
-html.yta-on ytd-search,
-html.yta-on ytd-shorts,
-html.yta-on #page-manager,
-html.yta-on tp-yt-app-drawer #contentContainer,
-html.yta-on ytd-mini-guide-renderer,
-html.yta-on ytd-guide-renderer,
-html.yta-on ytd-watch-flexy[flexy] #background,
-html.yta-on ytd-feed-filter-chip-bar-renderer,
-html.yta-on yt-chip-cloud-renderer {
   background: transparent !important;
   background-color: transparent !important;
 }
 
-/* Frosted-glass header and chip bar: the glow tints them, but scrolled
-   content doesn't show through. */
-html.yta-on ytd-masthead,
-html.yta-on #masthead-container,
-html.yta-on #background.ytd-masthead,
-html.yta-on #chips-wrapper.ytd-feed-filter-chip-bar-renderer {
-  background: rgba(10, 10, 10, 0.55) !important;
-  background-color: rgba(10, 10, 10, 0.55) !important;
-  -webkit-backdrop-filter: blur(24px);
-  backdrop-filter: blur(24px);
+/* Override YouTube CSS Custom Properties */
+html.yta-on,
+html.yta-on[dark],
+html.yta-on[theme="dark"],
+html.yta-force-dark {
+  --yt-spec-base-background: transparent !important;
+  --yt-spec-general-background-a: transparent !important;
+  --yt-spec-general-background-b: transparent !important;
+  --yt-spec-general-background-c: transparent !important;
+  --yt-spec-raised-background: rgba(22, 22, 22, 0.45) !important;
+  --yt-spec-menu-background: rgba(26, 26, 26, 0.88) !important;
+  --yt-spec-static-brand-black: transparent !important;
+  --yt-spec-static-overlay-background-solid: transparent !important;
+  --ytd-searchbox-background: rgba(18, 18, 18, 0.6) !important;
+  --yt-spec-brand-background-solid: transparent !important;
+  --yt-spec-brand-background-primary: transparent !important;
+  --yt-spec-brand-background-secondary: transparent !important;
 }
 
-/* Hide YouTube's own cinematic effect so the two don't stack. */
+/* High contrast typography when adapting light theme */
+html.yta-force-dark {
+  color: #f1f1f1 !important;
+  --yt-spec-text-primary: #f1f1f1 !important;
+  --yt-spec-text-secondary: #aaaaaa !important;
+  --yt-spec-icon-inactive: #aaaaaa !important;
+  --yt-spec-icon-active-other: #f1f1f1 !important;
+}
+
+html.yta-force-dark yt-formatted-string,
+html.yta-force-dark #country-code,
+html.yta-force-dark h1,
+html.yta-force-dark h2,
+html.yta-force-dark h3 {
+  color: #f1f1f1 !important;
+}
+
+/* ==========================================================================
+   YouTube App & Section Containers Transparency
+   Supports traditional layout (flexy), modern layout (grid), and theater mode
+   ========================================================================== */
+
+html.yta-on ytd-app,
+html.yta-on ytd-page-manager,
+html.yta-on #page-manager,
+html.yta-on ytd-watch-flexy,
+html.yta-on ytd-watch-flexy[flexy] #background,
+html.yta-on ytd-watch-grid,
+html.yta-on ytd-watch-grid #background,
+html.yta-on #columns,
+html.yta-on #primary,
+html.yta-on #secondary,
+html.yta-on #below,
+html.yta-on #player-container-outer,
+html.yta-on #player-container-inner,
+html.yta-on #full-bleed-container,
+html.yta-on #player-full-bleed-container,
+html.yta-on #player-theater-container,
+html.yta-on ytd-browse,
+html.yta-on ytd-search,
+html.yta-on ytd-shorts,
+html.yta-on ytd-reel-video-renderer,
+html.yta-on #shorts-container,
+html.yta-on #shorts-inner-container,
+html.yta-on ytd-mini-guide-renderer,
+html.yta-on ytd-guide-renderer,
+html.yta-on #guide-content,
+html.yta-on #guide-inner-content,
+html.yta-on ytd-feed-filter-chip-bar-renderer,
+html.yta-on yt-chip-cloud-renderer,
+html.yta-on ytd-rich-grid-renderer,
+html.yta-on ytd-rich-grid-row,
+html.yta-on ytd-two-column-browse-results-renderer,
+html.yta-on ytd-two-column-search-results-renderer,
+html.yta-on ytd-playlist-panel-renderer,
+html.yta-on ytd-playlist-panel-renderer #container,
+html.yta-on ytd-playlist-panel-renderer #items,
+html.yta-on ytd-item-section-renderer,
+html.yta-on #content,
+html.yta-on #contents,
+html.yta-on ytd-merch-shelf-renderer,
+html.yta-on ytd-clarification-renderer,
+html.yta-on ytd-in-feed-ad-layout-renderer {
+  background: transparent !important;
+  background-color: transparent !important;
+}
+
+/* YouTube Music compatibility */
+html.yta-on ytmusic-app,
+html.yta-on ytmusic-browse-response,
+html.yta-on ytmusic-player-page,
+html.yta-on ytmusic-player-bar {
+  background: transparent !important;
+  background-color: transparent !important;
+}
+
+/* ==========================================================================
+   Frosted Glass UI Accents for Maximum Readability
+   ========================================================================== */
+
+/* Masthead (Header) */
+html.yta-on #masthead-container {
+  background: rgba(10, 10, 10, 0.65) !important;
+  background-color: rgba(10, 10, 10, 0.65) !important;
+  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+html.yta-on ytd-masthead,
+html.yta-on #background.ytd-masthead {
+  background: transparent !important;
+  background-color: transparent !important;
+}
+
+/* Chips Bar */
+html.yta-on #chips-wrapper.ytd-feed-filter-chip-bar-renderer {
+  background: rgba(10, 10, 10, 0.5) !important;
+  background-color: rgba(10, 10, 10, 0.5) !important;
+  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
+}
+
+/* Watch Page Video Description Card */
+html.yta-on #description.ytd-watch-metadata,
+html.yta-on ytd-watch-metadata[dark] #description,
+html.yta-on #description-inner {
+  background: rgba(255, 255, 255, 0.05) !important;
+  background-color: rgba(255, 255, 255, 0.05) !important;
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 12px;
+}
+
+/* Side Drawer (Guide) */
+html.yta-on tp-yt-app-drawer #contentContainer {
+  background: rgba(12, 12, 12, 0.88) !important;
+  background-color: rgba(12, 12, 12, 0.88) !important;
+  -webkit-backdrop-filter: blur(24px);
+  backdrop-filter: blur(24px);
+  border-right: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+/* Playlist Queue Panel */
+html.yta-on ytd-playlist-panel-renderer {
+  background: rgba(16, 16, 16, 0.7) !important;
+  background-color: rgba(16, 16, 16, 0.7) !important;
+  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+}
+
+/* Engagement Panels (Live Chat, Chapters, Comments Sidebar) */
+html.yta-on ytd-engagement-panel-section-list-renderer {
+  background: rgba(14, 14, 14, 0.75) !important;
+  background-color: rgba(14, 14, 14, 0.75) !important;
+  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
+  border-radius: 12px;
+}
+
+/* Search Box Focus */
+html.yta-on #container.ytd-searchbox {
+  background: rgba(20, 20, 20, 0.7) !important;
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+}
+
+/* ==========================================================================
+   Conflict Prevention: Suppress YouTube's Native Cinematic Light
+   ========================================================================== */
+
 html.yta-on #cinematics,
 html.yta-on #cinematics-container,
 html.yta-on #cinematic-container,
 html.yta-on #cinematic-shorts-scrim,
-html.yta-on ytd-shorts [id^="cinematic"] {
+html.yta-on ytd-shorts [id^="cinematic"],
+html.yta-on #cinematic-lighting,
+html.yta-on ytd-watch-flexy[flexy] #cinematics {
   display: none !important;
 }

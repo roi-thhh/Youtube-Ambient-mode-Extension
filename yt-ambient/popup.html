@@ -1,34 +1,520 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
   <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>YouTube Ambient Light</title>
   <style>
-    body { width: 260px; margin: 0; padding: 14px; font: 13px system-ui, sans-serif; background: #151515; color: #eee; }
-    h1 { font-size: 14px; margin: 0 0 12px; }
-    label { display: block; margin: 10px 0 4px; }
-    .row { display: flex; justify-content: space-between; align-items: center; }
-    input[type=range] { width: 100%; }
-    small { color: #999; display: block; margin-top: 12px; }
-    button { margin-top: 12px; width: 100%; padding: 6px; border: 1px solid #444; border-radius: 6px;
-             background: #242424; color: #eee; cursor: pointer; }
-    button:hover { background: #2f2f2f; }
+    :root {
+      --bg-dark: #0e1117;
+      --bg-card: rgba(26, 31, 42, 0.7);
+      --bg-card-hover: rgba(35, 42, 57, 0.8);
+      --accent: #ff0055;
+      --accent-grad: linear-gradient(135deg, #ff0055 0%, #ff5500 50%, #9d00ff 100%);
+      --text-main: #f0f3f8;
+      --text-muted: #8b949e;
+      --border: rgba(255, 255, 255, 0.08);
+      --radius: 12px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+    }
+
+    body {
+      width: 320px;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: var(--bg-dark);
+      color: var(--text-main);
+      padding: 16px;
+      overflow-x: hidden;
+      font-size: 13px;
+    }
+
+    /* Header */
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 14px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .brand-icon {
+      width: 26px;
+      height: 26px;
+      border-radius: 6px;
+      box-shadow: 0 0 12px rgba(255, 0, 85, 0.4);
+    }
+
+    .brand-title {
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: -0.2px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .version-tag {
+      font-size: 10px;
+      font-weight: 600;
+      color: #aaa;
+      background: rgba(255, 255, 255, 0.08);
+      padding: 2px 5px;
+      border-radius: 4px;
+    }
+
+    /* Master Switch */
+    .switch-container {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .toggle-switch {
+      position: relative;
+      display: inline-block;
+      width: 44px;
+      height: 24px;
+    }
+
+    .toggle-switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .slider-track {
+      position: absolute;
+      cursor: pointer;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: #2a2f3d;
+      transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      border-radius: 24px;
+      border: 1px solid var(--border);
+    }
+
+    .slider-track:before {
+      position: absolute;
+      content: "";
+      height: 18px;
+      width: 18px;
+      left: 2px;
+      bottom: 2px;
+      background: #fff;
+      transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      border-radius: 50%;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+    }
+
+    input:checked + .slider-track {
+      background: var(--accent-grad);
+      border-color: transparent;
+      box-shadow: 0 0 12px rgba(255, 0, 85, 0.4);
+    }
+
+    input:checked + .slider-track:before {
+      transform: translateX(20px);
+    }
+
+    /* Status Badge */
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 3px 8px;
+      border-radius: 12px;
+      background: rgba(46, 160, 67, 0.15);
+      color: #3fb950;
+      margin-bottom: 12px;
+    }
+
+    .status-badge.disabled {
+      background: rgba(139, 148, 158, 0.15);
+      color: var(--text-muted);
+    }
+
+    .status-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: currentColor;
+    }
+
+    /* Mini Live Glow Preview */
+    .preview-box {
+      position: relative;
+      width: 100%;
+      height: 80px;
+      border-radius: var(--radius);
+      background: #08090d;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      border: 1px solid var(--border);
+    }
+
+    .preview-glow-aura {
+      position: absolute;
+      width: 140px;
+      height: 65px;
+      border-radius: 12px;
+      background: var(--accent-grad);
+      filter: blur(16px);
+      opacity: 0.8;
+      transition: all 0.2s ease;
+      z-index: 1;
+    }
+
+    .preview-screen {
+      position: relative;
+      z-index: 2;
+      width: 100px;
+      height: 52px;
+      border-radius: 6px;
+      background: linear-gradient(135deg, #1f2533 0%, #11141c 100%);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+    }
+
+    .preview-screen-play {
+      width: 0;
+      height: 0;
+      border-top: 6px solid transparent;
+      border-bottom: 6px solid transparent;
+      border-left: 10px solid #fff;
+      margin-bottom: 2px;
+    }
+
+    .preview-label {
+      font-size: 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: rgba(255, 255, 255, 0.6);
+      font-weight: 600;
+    }
+
+    /* Presets Container */
+    .presets-label {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+    }
+
+    .presets-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 6px;
+      margin-bottom: 16px;
+    }
+
+    .preset-btn {
+      padding: 6px 4px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text-main);
+      font-size: 11px;
+      font-weight: 500;
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.2s ease;
+    }
+
+    .preset-btn:hover {
+      background: var(--bg-card-hover);
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+
+    .preset-btn.active {
+      background: rgba(255, 0, 85, 0.15);
+      border-color: var(--accent);
+      color: #ff3377;
+      font-weight: 600;
+    }
+
+    /* Sliders Section */
+    .control-group {
+      margin-bottom: 12px;
+    }
+
+    .control-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 5px;
+    }
+
+    .control-label {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text-main);
+    }
+
+    .control-val {
+      font-size: 11px;
+      font-weight: 600;
+      color: #ff3377;
+      background: rgba(255, 0, 85, 0.1);
+      padding: 1px 6px;
+      border-radius: 4px;
+    }
+
+    /* Custom Range Input */
+    input[type=range] {
+      -webkit-appearance: none;
+      width: 100%;
+      height: 6px;
+      background: #1c222e;
+      border-radius: 6px;
+      outline: none;
+      transition: background 0.2s;
+    }
+
+    input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: #fff;
+      cursor: pointer;
+      box-shadow: 0 0 8px rgba(255, 0, 85, 0.6);
+      transition: transform 0.1s ease, box-shadow 0.1s ease;
+      border: 2px solid var(--accent);
+    }
+
+    input[type=range]::-webkit-slider-thumb:hover {
+      transform: scale(1.15);
+      box-shadow: 0 0 12px rgba(255, 0, 85, 0.9);
+    }
+
+    /* FPS / Performance Segmented Control */
+    .fps-segmented {
+      display: flex;
+      background: #151922;
+      border-radius: 8px;
+      padding: 2px;
+      border: 1px solid var(--border);
+      margin-top: 4px;
+    }
+
+    .fps-btn {
+      flex: 1;
+      padding: 5px 0;
+      border: none;
+      background: transparent;
+      color: var(--text-muted);
+      font-size: 11px;
+      font-weight: 500;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .fps-btn.active {
+      background: var(--bg-card-hover);
+      color: #fff;
+      font-weight: 600;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+    }
+
+    /* Checkbox Card */
+    .checkbox-card {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 12px;
+      background: var(--bg-card);
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      margin-top: 12px;
+      cursor: pointer;
+    }
+
+    .checkbox-text {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .checkbox-title {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text-main);
+    }
+
+    .checkbox-desc {
+      font-size: 10px;
+      color: var(--text-muted);
+    }
+
+    .checkbox-input {
+      width: 16px;
+      height: 16px;
+      cursor: pointer;
+      accent-color: var(--accent);
+    }
+
+    /* Action Buttons */
+    .btn-reset {
+      margin-top: 14px;
+      width: 100%;
+      padding: 8px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text-main);
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+
+    .btn-reset:hover {
+      background: rgba(255, 255, 255, 0.1);
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+
+    /* Footer */
+    .footer {
+      margin-top: 14px;
+      text-align: center;
+      font-size: 10px;
+      color: var(--text-muted);
+      line-height: 1.4;
+    }
   </style>
 </head>
 <body>
-  <h1>YouTube Ambient Light</h1>
-  <div class="row">
-    <label for="enabled" style="margin:0">Enabled</label>
-    <input type="checkbox" id="enabled" />
+  <!-- Header -->
+  <div class="header">
+    <div class="brand">
+      <img src="icons/icon32.png" alt="Icon" class="brand-icon" />
+      <div class="brand-title">
+        YT Ambient
+        <span class="version-tag">v1.2</span>
+      </div>
+    </div>
+    <div class="switch-container">
+      <label class="toggle-switch">
+        <input type="checkbox" id="enabled" />
+        <span class="slider-track"></span>
+      </label>
+    </div>
   </div>
-  <label for="intensity">Intensity <span id="v-intensity"></span></label>
-  <input type="range" id="intensity" min="0.1" max="1" step="0.05" />
-  <label for="blur">Blur <span id="v-blur"></span></label>
-  <input type="range" id="blur" min="30" max="200" step="5" />
-  <label for="saturate">Color boost <span id="v-saturate"></span></label>
-  <input type="range" id="saturate" min="1" max="3" step="0.1" />
-  <button id="reset">Reset to defaults</button>
-  <small>Works with YouTube's dark theme.</small>
+
+  <!-- Status -->
+  <div class="status-badge" id="status-badge">
+    <span class="status-dot"></span>
+    <span id="status-text">Ambient Mode Active</span>
+  </div>
+
+  <!-- Live Mini Preview -->
+  <div class="preview-box">
+    <div class="preview-glow-aura" id="preview-aura"></div>
+    <div class="preview-screen">
+      <div class="preview-screen-play"></div>
+      <span class="preview-label">Live Preview</span>
+    </div>
+  </div>
+
+  <!-- Quick Presets -->
+  <div class="presets-label">Glow Presets</div>
+  <div class="presets-grid">
+    <button class="preset-btn" data-preset="cinematic">Cinema</button>
+    <button class="preset-btn" data-preset="vivid">Vivid</button>
+    <button class="preset-btn" data-preset="subtle">Subtle</button>
+    <button class="preset-btn" data-preset="max">Ultra</button>
+  </div>
+
+  <!-- Sliders -->
+  <div class="control-group">
+    <div class="control-header">
+      <span class="control-label">Glow Intensity</span>
+      <span class="control-val" id="v-intensity">80%</span>
+    </div>
+    <input type="range" id="intensity" min="0.1" max="1" step="0.05" />
+  </div>
+
+  <div class="control-group">
+    <div class="control-header">
+      <span class="control-label">Blur Radius</span>
+      <span class="control-val" id="v-blur">80px</span>
+    </div>
+    <input type="range" id="blur" min="20" max="180" step="5" />
+  </div>
+
+  <div class="control-group">
+    <div class="control-header">
+      <span class="control-label">Color Vibrancy</span>
+      <span class="control-val" id="v-saturate">1.6x</span>
+    </div>
+    <input type="range" id="saturate" min="1" max="3" step="0.1" />
+  </div>
+
+  <div class="control-group">
+    <div class="control-header">
+      <span class="control-label">Spread & Reach</span>
+      <span class="control-val" id="v-spread">1.35x</span>
+    </div>
+    <input type="range" id="spread" min="1.0" max="1.8" step="0.05" />
+  </div>
+
+  <!-- Refresh Rate Segment -->
+  <div class="control-group">
+    <div class="control-header">
+      <span class="control-label">Performance & Smoothness</span>
+    </div>
+    <div class="fps-segmented" id="fps-group">
+      <button class="fps-btn" data-fps="10">Eco (10fps)</button>
+      <button class="fps-btn" data-fps="15">Balanced</button>
+      <button class="fps-btn" data-fps="25">Smooth</button>
+      <button class="fps-btn" data-fps="30">Ultra (30fps)</button>
+    </div>
+  </div>
+
+  <!-- Force Dark Mode Card -->
+  <div class="checkbox-card" id="card-forceDark">
+    <div class="checkbox-text">
+      <span class="checkbox-title">Adapt Light Theme</span>
+      <span class="checkbox-desc">Enables ambient mode even in light theme</span>
+    </div>
+    <input type="checkbox" id="forceDark" class="checkbox-input" />
+  </div>
+
+  <!-- Reset Button -->
+  <button id="reset" class="btn-reset">
+    <span>↺</span> Reset to Defaults
+  </button>
+
+  <!-- Footer -->
+  <div class="footer">
+    Works on all Chromium browsers (Chrome, Edge, Brave, Opera, Vivaldi)
+  </div>
+
   <script src="popup.js"></script>
 </body>
 </html>
